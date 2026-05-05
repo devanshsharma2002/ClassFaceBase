@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Professor Dashboard</h1>
+
+<section class="card">
+  <p><strong>Total Sessions:</strong> {{ total_sessions|default:0 }}</p>
+  <p><strong>Total Records:</strong> {{ total_records|default:0 }}</p>
+  <p><strong>Total Present:</strong> {{ total_present|default:0 }}</p>
+  <p><strong>Overall Attendance:</strong> {{ overall_percentage|default:0 }}%</p>
+</section>
+
+<section class="card" style="margin-top: 1rem;">
+  <a href="{% url 'create-session' %}" class="btn-primary">Create New Session</a>
+</section>
+
+<section class="card" style="margin-top: 1rem;">
+  <h2>Attendance Sessions</h2>
+
+  {% if sessions %}
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+      {% for session in sessions %}
+        <li style="padding: 1rem 0; border-bottom: 1px solid #ddd;">
+          <p><strong>Subject:</strong> {{ session.subject.name }}</p>
+          <p><strong>Code:</strong> {{ session.subject.code }}</p>
+          <p><strong>Date:</strong> {{ session.session_date }}</p>
+          <p><strong>Section:</strong> {{ session.class_section }}</p>
+          <p><strong>Status:</strong> {{ session.status }}</p>
+          <p><strong>Attendance:</strong> {{ session.attendance_percentage|default:0 }}%</p>
+          <p><strong>Present:</strong> {{ session.present_records|default:0 }} / {{ session.total_records|default:0 }}</p>
+          <p><strong>Absent:</strong> {{ session.absent_records|default:0 }}</p>
+
+          <div style="margin-top: 0.5rem;">
+            <a href="{% url 'session-review' session.id %}" class="btn-primary">Review Session</a>
+            <a href="{% url 'download-csv' session.id %}" style="margin-left: 0.75rem;">Download CSV</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No attendance sessions yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

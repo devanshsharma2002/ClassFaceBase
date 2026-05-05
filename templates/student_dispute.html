@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Dispute Attendance Record</h1>
+
+<section class="card">
+  <p><strong>Date:</strong> {{ record.attendance_session.session_date }}</p>
+  <p><strong>Subject:</strong> {{ record.attendance_session.subject.name }}</p>
+  <p><strong>Status:</strong> {{ record.status }}</p>
+  <p><strong>Remarks:</strong> {{ record.remarks|default:'-' }}</p>
+</section>
+
+<section class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="reason">Reason for dispute</label>
+      <textarea name="reason" id="reason" rows="5" required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="proof">Proof file (optional)</label>
+      <input type="file" name="proof" id="proof">
+    </div>
+
+    <button type="submit">Submit Dispute</button>
+  </form>
+</section>
+{% endblock %}

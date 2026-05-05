@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Student Dashboard</h1>
+
+<div class="stats-grid">
+  <div class="card">
+    <div class="label">Overall Attendance</div>
+    <div class="value">{{ percentage }}%</div>
+  </div>
+</div>
+
+<section class="card">
+  <h2>My Attendance Records</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Subject</th>
+        <th>Status</th>
+        <th>Remarks</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+      <tr>
+        <td>{{ record.attendance_session.session_date }}</td>
+        <td>{{ record.attendance_session.subject.name }}</td>
+        <td>{{ record.status }}</td>
+        <td>{{ record.remarks|default:'-' }}</td>
+        <td>
+          {% if record.status == 'ABSENT' and record.attendance_session.status == 'COMPLETED' %}
+            <a href="{% url 'student-dispute' record.id %}">Dispute</a>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5">No attendance records yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

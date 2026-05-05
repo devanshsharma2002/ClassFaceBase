@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Review Session: {{ session.subject.name }} ({{ session.session_date }})</h1>
+
+<section class="card">
+  <div class="session-info">
+    <p>Status: {{ session.status }}</p>
+    <p>Enrolled students: {{ enrollments }}</p>
+    {% if session.photos.exists %}
+      <p>Photos: {{ session.photos.count }}</p>
+    {% else %}
+      <p>Photos: 0</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-actions" style="margin-bottom: 1rem;">
+      <button type="submit" name="process_ai" value="1" class="btn-primary">
+        Process with AI
+      </button>
+    </div>
+
+    <table class="full-width">
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>Student Name</th>
+          <th>Status</th>
+          <th>Confidence Score</th>
+          <th>Matched Photos</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+        <tr>
+          <td>{{ record.student.roll_number }}</td>
+          <td>{{ record.student.user.get_full_name|default:record.student.user.email }}</td>
+          <td>
+            <select name="status_{{ record.id }}">
+              <option value="PRESENT" {% if record.status == 'PRESENT' %}selected{% endif %}>PRESENT</option>
+              <option value="ABSENT" {% if record.status == 'ABSENT' %}selected{% endif %}>ABSENT</option>
+            </select>
+          </td>
+          <td>
+            {% if record.confidence_score is not None %}
+              {{ record.confidence_score }}
+            {% else %}
+              0.0
+            {% endif %}
+          </td>
+          <td>{{ record.recognized_in_photo_count|default:0 }}</td>
+          <td>
+            <input
+              type="text"
+              name="remarks_{{ record.id }}"
+              value="{{ record.remarks|default_if_none:'' }}"
+              placeholder="Optional remarks"
+            >
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">No attendance records yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="form-actions" style="margin-top: 1rem;">
+      <button type="submit">Save Changes</button>
+      <button type="submit" name="finalize" value="1" class="btn-primary">Finalize Session</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

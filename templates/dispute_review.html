@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Attendance Disputes</h1>
+
+<section class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Student</th>
+        <th>Subject</th>
+        <th>Attendance</th>
+        <th>Dispute</th>
+        <th>Reason</th>
+        <th>Proof</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dispute in disputes %}
+      <tr>
+        <td>{{ dispute.attendance_record.attendance_session.session_date }}</td>
+        <td>{{ dispute.student.user.get_full_name|default:dispute.student.user.email }}</td>
+        <td>{{ dispute.attendance_record.attendance_session.subject.name }}</td>
+        <td>{{ dispute.attendance_record.status }}</td>
+        <td>{{ dispute.status }}</td>
+        <td>{{ dispute.description }}</td>
+        <td>
+          {% if dispute.proof_file %}
+            <a href="{{ dispute.proof_file.url }}" target="_blank">View file</a>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if dispute.status == 'PENDING' %}
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="dispute_id" value="{{ dispute.id }}">
+              <textarea name="resolution_note" rows="2" placeholder="Optional note"></textarea>
+              <div style="margin-top:8px; display:flex; gap:8px;">
+                <button type="submit" name="approve" value="1">Approve</button>
+                <button type="submit" name="reject" value="1">Reject</button>
+              </div>
+            </form>
+          {% else %}
+            <div><strong>{{ dispute.status }}</strong></div>
+            <div>{{ dispute.resolution_note|default:"-" }}</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8">No disputes found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

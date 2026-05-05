@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Create Attendance Session</h1>
+
+<section class="card">
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create Session</button>
+  </form>
+</section>
+{% endblock %}
