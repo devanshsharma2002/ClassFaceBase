@@ -1,7 +1,7 @@
 Django>=5.0,<6.0
 djangorestframework>=3.15,<4.0
 python-dotenv>=1.0,<2.0
-dlib-bin
+opencv_python-4.1.1.26-cp37-cp37m-manylinux1_x86_64.whl
 face-recognition
 opencv-python
 pillow
