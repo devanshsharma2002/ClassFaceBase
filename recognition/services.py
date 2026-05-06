@@ -41,12 +41,12 @@ def preprocess_for_detection(image_bgr):
         return None
 
     image = image_bgr.copy()
-    image = cv2.convertScaleAbs(image, alpha=1.10, beta=8)
+    image = cv2.convertScaleAbs(image, alpha=1.12, beta=10)
 
     h, w = image.shape[:2]
 
-    max_width = 960
-    min_width = 700
+    max_width = 1200
+    min_width = 800
 
     if w > max_width:
         scale = max_width / w
@@ -66,7 +66,7 @@ def preprocess_for_detection(image_bgr):
     return image
 
 
-def run_mediapipe_detection(image_bgr, model_selection=0, min_conf=0.35):
+def run_mediapipe_detection(image_bgr, model_selection=0, min_conf=0.30):
     rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     with mp_face_detection.FaceDetection(
         model_selection=model_selection,
@@ -81,8 +81,8 @@ def run_haar_detection(image_bgr):
     gray = cv2.equalizeHist(gray)
     faces = haar_cascade.detectMultiScale(
         gray,
-        scaleFactor=1.08,
-        minNeighbors=5,
+        scaleFactor=1.05,
+        minNeighbors=4,
         minSize=(50, 50),
     )
     return faces
@@ -119,7 +119,7 @@ def detect_and_crop_faces(image_bgr):
     ph, pw = processed.shape[:2]
 
     detections = []
-    for model_selection, min_conf in [(0, 0.35), (1, 0.35)]:
+    for model_selection, min_conf in [(1, 0.30), (0, 0.30)]:
         detections = run_mediapipe_detection(
             processed,
             model_selection=model_selection,
@@ -149,8 +149,8 @@ def detect_and_crop_faces(image_bgr):
         ox2 = int(x2 * ow / pw)
         oy2 = int(y2 * oh / ph)
 
-        pad_x = int((ox2 - ox1) * 0.16)
-        pad_y = int((oy2 - oy1) * 0.20)
+        pad_x = int((ox2 - ox1) * 0.18)
+        pad_y = int((oy2 - oy1) * 0.22)
 
         ox1 = max(0, ox1 - pad_x)
         oy1 = max(0, oy1 - pad_y)
@@ -160,7 +160,7 @@ def detect_and_crop_faces(image_bgr):
         if (ox2 - ox1) >= 60 and (oy2 - oy1) >= 60:
             boxes.append((ox1, oy1, ox2, oy2))
 
-    if not boxes:
+    if len(boxes) <= 1:
         haar_faces = run_haar_detection(processed)
         for (x, y, w, h) in haar_faces:
             x1 = max(int(x * ow / pw), 0)
@@ -168,8 +168,8 @@ def detect_and_crop_faces(image_bgr):
             x2 = min(int((x + w) * ow / pw), ow)
             y2 = min(int((y + h) * oh / ph), oh)
 
-            pad_x = int((x2 - x1) * 0.12)
-            pad_y = int((y2 - y1) * 0.16)
+            pad_x = int((x2 - x1) * 0.15)
+            pad_y = int((y2 - y1) * 0.18)
 
             x1 = max(0, x1 - pad_x)
             y1 = max(0, y1 - pad_y)
@@ -182,7 +182,7 @@ def detect_and_crop_faces(image_bgr):
     boxes = deduplicate_boxes(boxes)
 
     faces = []
-    for x1, y1, x2, y2 in boxes[:10]:
+    for x1, y1, x2, y2 in boxes[:12]:
         crop = original[y1:y2, x1:x2]
         if crop.size != 0:
             faces.append(crop)
@@ -192,7 +192,7 @@ def detect_and_crop_faces(image_bgr):
 
 def normalize_face(face_bgr):
     gray = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2GRAY)
-    gray = cv2.resize(gray, (128, 128))
+    gray = cv2.resize(gray, (160, 160))
     gray = cv2.equalizeHist(gray)
     gray = cv2.GaussianBlur(gray, (3, 3), 0)
     return gray
@@ -202,7 +202,7 @@ def orb_similarity(face1_bgr, face2_bgr):
     img1 = normalize_face(face1_bgr)
     img2 = normalize_face(face2_bgr)
 
-    orb = cv2.ORB_create(nfeatures=300)
+    orb = cv2.ORB_create(nfeatures=500)
     kp1, des1 = orb.detectAndCompute(img1, None)
     kp2, des2 = orb.detectAndCompute(img2, None)
 
@@ -225,8 +225,8 @@ def histogram_similarity(face1_bgr, face2_bgr):
     img1 = normalize_face(face1_bgr)
     img2 = normalize_face(face2_bgr)
 
-    hist1 = cv2.calcHist([img1], [0], None, [128], [0, 256])
-    hist2 = cv2.calcHist([img2], [0], None, [128], [0, 256])
+    hist1 = cv2.calcHist([img1], [0], None, [256], [0, 256])
+    hist2 = cv2.calcHist([img2], [0], None, [256], [0, 256])
 
     cv2.normalize(hist1, hist1)
     cv2.normalize(hist2, hist2)
@@ -251,6 +251,8 @@ def generate_embedding_from_field(image_field):
         faces = detect_and_crop_faces(image)
         if not faces:
             print("No face detected in stored image")
+            del image
+            gc.collect()
             return None
 
         face = normalize_face(faces[0])
@@ -263,6 +265,7 @@ def generate_embedding_from_field(image_field):
 
     except Exception as exc:
         print(f"ERROR generating face data: {exc}")
+        gc.collect()
         return None
 
 
