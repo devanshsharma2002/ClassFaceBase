@@ -14,6 +14,26 @@ haar_cascade = cv2.CascadeClassifier(
 )
 
 
+def load_image_from_field(image_field):
+    if not image_field:
+        return None
+
+    try:
+        image_field.open("rb")
+        file_bytes = image_field.read()
+        image_field.close()
+
+        if not file_bytes:
+            return None
+
+        np_arr = np.frombuffer(file_bytes, np.uint8)
+        image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        return image
+    except Exception as exc:
+        print(f"ERROR loading image field: {exc}")
+        return None
+
+
 def preprocess_for_detection(image_bgr):
     if image_bgr is None:
         return None
@@ -208,23 +228,23 @@ def compare_faces(face1_bgr, face2_bgr):
     return round((0.7 * orb_score) + (0.3 * hist_score), 4)
 
 
-def generate_embedding(image_path):
+def generate_embedding_from_field(image_field):
     try:
-        image = cv2.imread(image_path)
+        image = load_image_from_field(image_field)
         if image is None:
-            print(f"Could not read image path: {image_path}")
+            print("Could not read image from storage")
             return None
 
         faces = detect_and_crop_faces(image)
         if not faces:
-            print(f"No face detected in image path: {image_path}")
+            print("No face detected in stored image")
             return None
 
         face = normalize_face(faces[0])
         return face.tolist()
 
     except Exception as exc:
-        print(f"ERROR generating face data for {image_path}: {exc}")
+        print(f"ERROR generating face data: {exc}")
         return None
 
 
@@ -232,13 +252,7 @@ def store_embedding_for_image(face_image):
     if not face_image.image:
         return False
 
-    try:
-        image_path = face_image.image.path
-    except Exception as exc:
-        print(f"ERROR getting image path for StudentFaceImage #{face_image.id}: {exc}")
-        return False
-
-    embedding = generate_embedding(image_path)
+    embedding = generate_embedding_from_field(face_image.image)
 
     if embedding:
         face_image.embedding_data = embedding
@@ -278,11 +292,10 @@ def get_known_student_faces():
 
     for img in images:
         try:
-            image_path = img.image.path
-            ref_image = cv2.imread(image_path)
+            ref_image = load_image_from_field(img.image)
 
             if ref_image is None:
-                print(f"Could not read student face image #{img.id}: {image_path}")
+                print(f"Could not read student face image #{img.id}")
                 continue
 
             faces = detect_and_crop_faces(ref_image)
@@ -323,11 +336,10 @@ def process_attendance_photos(session):
 
     for photo in photos:
         try:
-            image_path = photo.image.path
-            image = cv2.imread(image_path)
+            image = load_image_from_field(photo.image)
 
             if image is None:
-                print(f"Could not read attendance photo #{photo.id}: {image_path}")
+                print(f"Could not read attendance photo #{photo.id}")
                 continue
 
             detected_faces = detect_and_crop_faces(image)
@@ -382,7 +394,6 @@ def process_attendance_photos(session):
     print(f"Matched students map: {matched_students}")
 
     updated_present = 0
-
     session_records = session.records.select_related("student").all()
 
     for record in session_records:
