@@ -36,6 +36,7 @@ class AttendanceRecord(models.Model):
         ABSENT = 'ABSENT', 'Absent'
         REVIEW_REQUIRED = 'REVIEW_REQUIRED', 'Review Required'
 
+    marked_by_system = models.BooleanField(default=False)
     attendance_session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE, related_name='records')
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ABSENT)

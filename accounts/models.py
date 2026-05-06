@@ -8,6 +8,8 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("The Email field must be set")
 
         email = self.normalize_email(email)
+        extra_fields.setdefault("is_active", True)
+
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -43,7 +45,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    last_login = models.DateTimeField(blank=True, null=True)
 
     objects = CustomUserManager()
 
@@ -59,5 +60,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.first_name or self.email
-    
-    
