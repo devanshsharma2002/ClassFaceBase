@@ -5,12 +5,12 @@
 
 <section class="card">
   <div class="session-info">
-    <p>Status: {{ session.status }}</p>
-    <p>Enrolled students: {{ enrollments }}</p>
+    <p><strong>Status:</strong> {{ session.status }}</p>
+    <p><strong>Enrolled students:</strong> {{ enrollments }}</p>
     {% if session.photos.exists %}
-      <p>Photos: {{ session.photos.count }}</p>
+      <p><strong>Photos:</strong> {{ session.photos.count }}</p>
     {% else %}
-      <p>Photos: 0</p>
+      <p><strong>Photos:</strong> 0</p>
     {% endif %}
   </div>
 </section>
@@ -19,11 +19,37 @@
   <form method="post">
     {% csrf_token %}
 
-    <div class="form-actions" style="margin-bottom: 1rem;">
-      <button type="submit" name="process_ai" value="1" class="btn-primary">
-        Process with AI
-      </button>
+    <div class="form-actions">
+      {% if session.status == 'PROCESSING' %}
+        <button type="submit" name="process_ai" value="1" class="btn btn-primary" disabled>
+          AI Processing Running...
+        </button>
+      {% elif session.photos.exists %}
+        <button type="submit" name="process_ai" value="1" class="btn btn-primary">
+          Process with AI
+        </button>
+      {% else %}
+        <button type="submit" name="process_ai" value="1" class="btn btn-primary" disabled>
+          Process with AI
+        </button>
+      {% endif %}
+
+      <a href="{% url 'download-csv' session.id %}" class="btn btn-secondary">
+        Download CSV
+      </a>
     </div>
+
+    {% if not session.photos.exists %}
+      <p class="warning-text">
+        No attendance photos uploaded for this session, so AI processing is disabled.
+      </p>
+    {% endif %}
+
+    {% if session.status == 'COMPLETED' %}
+      <p class="success-text">
+        This session is finalized. You can still review the records below before making further controlled changes.
+      </p>
+    {% endif %}
 
     <table class="full-width">
       <thead>
@@ -45,6 +71,7 @@
             <select name="status_{{ record.id }}">
               <option value="PRESENT" {% if record.status == 'PRESENT' %}selected{% endif %}>PRESENT</option>
               <option value="ABSENT" {% if record.status == 'ABSENT' %}selected{% endif %}>ABSENT</option>
+              <option value="REVIEW_REQUIRED" {% if record.status == 'REVIEW_REQUIRED' %}selected{% endif %}>REVIEW REQUIRED</option>
             </select>
           </td>
           <td>
@@ -72,10 +99,21 @@
       </tbody>
     </table>
 
-    <div class="form-actions" style="margin-top: 1rem;">
-      <button type="submit">Save Changes</button>
-      <button type="submit" name="finalize" value="1" class="btn-primary">Finalize Session</button>
+    <div class="form-actions bottom-actions">
+      <button type="submit" class="btn btn-secondary">
+        Save Changes
+      </button>
+
+      {% if records %}
+        <button type="submit" name="finalize" value="1" class="btn btn-primary">
+          Finalize Session
+        </button>
+      {% else %}
+        <button type="submit" name="finalize" value="1" class="btn btn-primary" disabled>
+          Finalize Session
+        </button>
+      {% endif %}
     </div>
   </form>
 </section>
-{% endblock %}
+{% endblock %}a

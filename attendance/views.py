@@ -165,7 +165,7 @@ def create_session_view(request):
         if form.is_valid():
             session = form.save(commit=False)
             session.professor = request.user
-            session.status = AttendanceSession.Status.COMPLETED
+            session.status = AttendanceSession.Status.DRAFT
             session.save()
 
             uploaded_photo = form.cleaned_data.get("photo")
@@ -188,23 +188,15 @@ def create_session_view(request):
                         "recognized_in_photo_count": 0,
                         "reviewed_manually": False,
                         "marked_by_system": False,
-                        "remarks": "Waiting for face recognition processing",
+                        "remarks": "Session created. AI processing not started yet.",
                     },
                 )
 
-            success, result_message = process_attendance_photos(session)
-
             if students:
-                if success:
-                    messages.success(
-                        request,
-                        f"Attendance session created and processed. {result_message}",
-                    )
-                else:
-                    messages.warning(
-                        request,
-                        f"Session created, but processing issue: {result_message}",
-                    )
+                messages.success(
+                    request,
+                    "Attendance session created successfully. Open review page and click Process AI when ready.",
+                )
             else:
                 messages.warning(
                     request,
@@ -279,7 +271,7 @@ def create_demo_session(request):
         subject=assignment.subject,
         class_section=assignment.subject.section,
         session_date=date.today(),
-        status=AttendanceSession.Status.COMPLETED,
+        status=AttendanceSession.Status.DRAFT,
     )
 
     students = get_students_for_session(session)
@@ -294,16 +286,14 @@ def create_demo_session(request):
                 "recognized_in_photo_count": 0,
                 "reviewed_manually": False,
                 "marked_by_system": False,
-                "remarks": "Waiting for face recognition processing",
+                "remarks": "Demo session created. Run AI manually from the review page.",
             },
         )
 
-    success, result_message = process_attendance_photos(session)
-
     return Response(
         {
-            "message": result_message if students else "No matching students were found for this subject/section/year.",
-            "success": success if students else False,
+            "message": "Session created successfully. Run AI manually from the review page.",
+            "success": True,
             "session_id": session.id,
             "student_count": len(students),
             "subject": assignment.subject.name,
@@ -400,11 +390,19 @@ def session_review_view(request, session_id):
 
     if request.method == "POST":
         if "process_ai" in request.POST:
+            session.status = AttendanceSession.Status.PROCESSING
+            session.save(update_fields=["status"])
+
             success, result_message = process_attendance_photos(session)
+
+            session.status = AttendanceSession.Status.COMPLETED if success else AttendanceSession.Status.DRAFT
+            session.save(update_fields=["status"])
+
             if success:
                 messages.success(request, result_message)
             else:
                 messages.warning(request, result_message)
+
             return redirect("session-review", session_id=session.id)
 
         records = session.records.select_related("student__user").all()
@@ -420,7 +418,7 @@ def session_review_view(request, session_id):
 
         if "finalize" in request.POST:
             session.status = AttendanceSession.Status.COMPLETED
-            session.save()
+            session.save(update_fields=["status"])
 
             success, error = send_attendance_email(session)
 
