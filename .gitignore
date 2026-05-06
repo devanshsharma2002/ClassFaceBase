@@ -41,3 +41,6 @@ build/
 dist/
 *.egg-info/
 .eggs/
+
+dlib-19.22.99-cp310-cp310-win_amd64.whl
+opencv_python-4.1.1.26-cp37-cp37m-manylinux1_x86_64.whl
